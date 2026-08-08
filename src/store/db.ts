@@ -91,12 +91,15 @@ function quoteIdentifier(identifier: string): string {
 
 function createBunCompatDatabaseCtor(require: NodeRequire): DatabaseCtor {
   const bunSqlite = require('bun:sqlite') as { Database: new (dbPath: string) => BunDatabaseInstance };
+  return createBunCompatDatabaseCtorFromCtor(bunSqlite.Database);
+}
 
+function createBunCompatDatabaseCtorFromCtor(DatabaseCtor: new (dbPath: string) => BunDatabaseInstance): DatabaseCtor {
   return class BunCompatDatabase implements DatabaseLike {
     private readonly db: BunDatabaseInstance;
 
     constructor(dbPath: string) {
-      this.db = new bunSqlite.Database(dbPath);
+      this.db = new DatabaseCtor(dbPath);
     }
 
     prepare(sql: string): StatementLike {
