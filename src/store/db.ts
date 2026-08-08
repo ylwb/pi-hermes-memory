@@ -4,7 +4,7 @@ import { createRequire } from 'node:module';
 import { SCHEMA_SQL } from './schema.js';
 import { AtomicLockCoordinator } from './atomic-lock-coordinator.js';
 import { canonicalStoragePathSync } from './canonical-storage-path.js';
-import { isBunRuntime, loadBetterSqlite3 } from './sqlite-native.js';
+import { isBunRuntime, isAndroidRuntime, tryLoadBunSqlite, loadBetterSqlite3 } from './sqlite-native.js';
 
 type StatementLike = {
   run: (...args: any[]) => any;
@@ -130,9 +130,19 @@ let cachedDatabaseCtor: DatabaseCtor | null = null;
 function getDatabaseCtor(): DatabaseCtor {
   if (!cachedDatabaseCtor) {
     const require = createRequire(import.meta.url);
-    cachedDatabaseCtor = isBunRuntime()
-      ? createBunCompatDatabaseCtor(require)
-      : (loadBetterSqlite3({ requireImpl: require }) as DatabaseCtor);
+    if (isBunRuntime()) {
+      cachedDatabaseCtor = createBunCompatDatabaseCtor(require);
+    } else if (isAndroidRuntime()) {
+      // Android/Termux: better-sqlite3 can't compile, use bun:sqlite fallback
+      const bunDb = tryLoadBunSqlite();
+      if (bunDb) {
+        cachedDatabaseCtor = createBunCompatDatabaseCtorFromCtor(bunDb);
+      } else {
+        cachedDatabaseCtor = (loadBetterSqlite3({ requireImpl: require }) as DatabaseCtor);
+      }
+    } else {
+      cachedDatabaseCtor = (loadBetterSqlite3({ requireImpl: require }) as DatabaseCtor);
+    }
   }
   return cachedDatabaseCtor;
 }

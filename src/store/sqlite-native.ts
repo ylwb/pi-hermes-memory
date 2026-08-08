@@ -56,6 +56,27 @@ export function isBunRuntime(): boolean {
   return "Bun" in globalThis;
 }
 
+/**
+ * True when running on Android (Termux) where better-sqlite3 can't compile.
+ * Falls back to bun:sqlite via dynamic require.
+ */
+export function isAndroidRuntime(): boolean {
+  return process.platform === "android";
+}
+
+/**
+ * Try to load bun:sqlite as fallback when better-sqlite3 is unavailable.
+ * Works in both Bun and Node.js runtimes.
+ */
+export function tryLoadBunSqlite(): BetterSqlite3DatabaseCtor | null {
+  try {
+    const bunSqlite = createRequire(import.meta.url)("bun:sqlite");
+    return bunSqlite.Database as BetterSqlite3DatabaseCtor;
+  } catch {
+    return null;
+  }
+}
+
 export function isNativeModuleAbiMismatch(error: unknown): boolean {
   if (!error) return false;
   const message = error instanceof Error ? error.message : String(error);
