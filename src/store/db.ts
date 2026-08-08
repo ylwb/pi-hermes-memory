@@ -139,7 +139,7 @@ function getDatabaseCtor(): DatabaseCtor {
       // Android/Termux: better-sqlite3 can't compile, use bun:sqlite fallback
       const bunDb = tryLoadBunSqlite();
       if (bunDb) {
-        cachedDatabaseCtor = createBunCompatDatabaseCtorFromCtor(bunDb);
+        cachedDatabaseCtor = createBunCompatDatabaseCtorFromCtor(bunDb as any);
       } else {
         cachedDatabaseCtor = (loadBetterSqlite3({ requireImpl: require }) as DatabaseCtor);
       }
